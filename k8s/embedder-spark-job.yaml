@@ -1,0 +1,99 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spark-embedding-job
+  namespace: insurance-rag
+spec:
+  ttlSecondsAfterFinished: 86400  # Clean up after 24 hours
+  template:
+    metadata:
+      labels:
+        app: spark-embedding
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: spark-submit
+        image: insurance-rag/spark-base:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - /opt/bitnami/spark/bin/spark-submit
+        - --master
+        - k8s://https://kubernetes.default.svc:443
+        - --deploy-mode
+        - cluster
+        - --name
+        - insurance-embeddings
+        - --conf
+        - spark.executor.instances=2
+        - --conf
+        - spark.executor.memory=4g
+        - --conf
+        - spark.executor.cores=2
+        - --conf
+        - spark.driver.memory=2g
+        - --conf
+        - spark.kubernetes.container.image=insurance-rag/spark-base:latest
+        - --conf
+        - spark.kubernetes.namespace=insurance-rag
+        - --conf
+        - spark.kubernetes.authenticate.driver.serviceAccountName=spark
+        - local:///app/spark/embedding_job.py
+        env:
+        - name: EMBEDDING_MODEL
+          value: "BAAI/bge-small-en-v1.5"
+        - name: MINIO_ENDPOINT
+          value: "minio-service:9000"
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rag-secrets
+              key: minio-access-key
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rag-secrets
+              key: minio-secret-key
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+      volumes:
+      - name: config
+        configMap:
+          name: rag-config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark
+  namespace: insurance-rag
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-role
+  namespace: insurance-rag
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spark-role-binding
+  namespace: insurance-rag
+subjects:
+- kind: ServiceAccount
+  name: spark
+  namespace: insurance-rag
+roleRef:
+  kind: Role
+  name: spark-role
+  apiGroup: rbac.authorization.k8s.io

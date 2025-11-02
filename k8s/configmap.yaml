@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-config
+  namespace: insurance-rag
+data:
+  config.yaml: |
+    kafka:
+      bootstrap_servers: kafka-cluster-kafka-bootstrap:9092
+      topics:
+        chunks: chunks
+        enriched: enriched
+      consumer_group: insurance-rag-group
+      auto_offset_reset: earliest
+      enable_auto_commit: true
+      max_poll_records: 100
+      session_timeout_ms: 30000
+    
+    storage:
+      type: minio
+      endpoint: minio-service:9000
+      access_key: minioadmin
+      secret_key: minioadmin
+      secure: false
+      buckets:
+        docs: insurance-docs
+        chunks: chunks
+        enriched: enriched
+        embeddings: embeddings
+        indexes: indexes
+    
+    processing:
+      chunk_size: 512
+      chunk_overlap: 50
+      chunk_batch_size: 50
+      supported_formats:
+        - pdf
+        - docx
+        - txt
+      metadata_fields:
+        - source
+        - page
+        - section
+        - regulation_id
+    
+    llm:
+      model: microsoft/Phi-3-mini-4k-instruct
+      api_url: null
+      api_key: null
+      max_tokens: 256
+      temperature: 0.3
+      top_p: 0.9
+      device: cuda
+      load_in_8bit: true
+      concurrency: 4
+      timeout: 30
+    
+    embedding:
+      model: BAAI/bge-small-en-v1.5
+      dimension: 384
+      batch_size: 32
+      normalize: true
+      device: cuda
+      max_length: 512
+    
+    spark:
+      app_name: insurance-embeddings
+      master: spark://spark-master:7077
+      executor_memory: 4g
+      executor_cores: 2
+      driver_memory: 2g
+      num_executors: 2
+      shuffle_partitions: 10
+    
+    faiss:
+      index_type: IVF
+      nlist: 100
+      nprobe: 10
+      m: 8
+      bits: 8
+      ef_construction: 200
+      ef_search: 50
+    
+    retrieval:
+      top_k: 5
+      score_threshold: 0.7
+      rerank: true
+      max_context_length: 4096
+    
+    api:
+      host: 0.0.0.0
+      port: 8000
+      workers: 4
+      reload: false
+      log_level: info
+      cors_origins:
+        - "*"
+      rate_limit: 100
+    
+    monitoring:
+      enable_metrics: true
+      metrics_port: 9090
+      log_level: INFO
+      log_format: json
+    
+    prompts:
+      summarization: |
+        You are an expert in insurance regulations. Summarize the following regulatory text in 2-3 sentences.
+        Focus on key requirements, obligations, and deadlines.
+        
+        Text: {text}
+        
+        Summary:
+      
+      classification: |
+        Classify the following insurance regulation text into one or more categories:
+        - Life Insurance
+        - Health Insurance
+        - Property Insurance
+        - Liability Insurance
+        - Reinsurance
+        - Consumer Protection
+        - Solvency Requirements
+        - Reporting Obligations
+        
+        Text: {text}
+        
+        Categories (comma-separated):
+      
+      key_extraction: |
+        Extract key information from this insurance regulation:
+        - Regulation ID
+        - Effective Date
+        - Affected Parties
+        - Key Requirements
+        - Penalties
+        
+        Text: {text}
+        
+        Key Information (JSON format):

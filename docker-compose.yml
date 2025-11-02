@@ -1,0 +1,220 @@
+services:
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+
+  # Kafka broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  # MinIO S3-compatible storage
+  minio:
+    image: minio/minio:latest
+    hostname: minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MinIO bucket creation
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/insurance-docs --ignore-existing;
+      /usr/bin/mc mb myminio/chunks --ignore-existing;
+      /usr/bin/mc mb myminio/enriched --ignore-existing;
+      /usr/bin/mc mb myminio/embeddings --ignore-existing;
+      /usr/bin/mc mb myminio/indexes --ignore-existing;
+      exit 0;
+      "
+
+  # Spark Master
+  spark-master:
+    build:
+      context: .
+      dockerfile: docker/spark-base.Dockerfile
+    hostname: spark-master
+    container_name: spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+    volumes:
+      - ./spark:/app/spark
+      - ./config:/app/config
+      - ./utils:/app/utils
+      - spark-data:/tmp/spark-events
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+
+  # Spark Worker
+  spark-worker:
+    build:
+      context: .
+      dockerfile: docker/spark-base.Dockerfile
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4G
+    volumes:
+      - ./spark:/app/spark
+      - ./config:/app/config
+      - ./utils:/app/utils
+      - spark-data:/tmp/spark-events
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+
+  # Document Ingestor
+  ingestor:
+    build:
+      context: .
+      dockerfile: docker/ingestor.Dockerfile
+    container_name: ingestor
+    depends_on:
+      - kafka
+      - minio
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./workers:/app/workers
+      - ./utils:/app/utils
+      - ./config:/app/config
+      - ./data:/app/data
+    command: python /app/workers/ingestor.py
+
+  # Text Enricher
+  enricher:
+    build:
+      context: .
+      dockerfile: docker/enricher.Dockerfile
+    container_name: enricher
+    depends_on:
+      - kafka
+      - minio
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./workers:/app/workers
+      - ./utils:/app/utils
+      - ./config:/app/config
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: python /app/workers/enricher.py
+
+  # FAISS Indexer
+  indexer:
+    build:
+      context: .
+      dockerfile: docker/ingestor.Dockerfile
+    container_name: indexer
+    depends_on:
+      - minio
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./workers:/app/workers
+      - ./utils:/app/utils
+      - ./config:/app/config
+    command: sleep infinity
+
+  # RAG API
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: api
+    depends_on:
+      - minio
+    ports:
+      - "8000:8000"
+      - "7860:7860"
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./api:/app/api
+      - ./utils:/app/utils
+      - ./config:/app/config
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:
+  minio-data:
+  spark-data:

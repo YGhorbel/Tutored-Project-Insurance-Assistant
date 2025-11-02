@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: faiss-indexer
+  namespace: insurance-rag
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: indexer
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: indexer
+        image: insurance-rag/ingestor:latest
+        imagePullPolicy: IfNotPresent
+        command: ["python", "/app/workers/indexer.py"]
+        env:
+        - name: MINIO_ENDPOINT
+          value: "minio-service:9000"
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rag-secrets
+              key: minio-access-key
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rag-secrets
+              key: minio-secret-key
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "1000m"
+          limits:
+            memory: "8Gi"
+            cpu: "2000m"
+      volumes:
+      - name: config
+        configMap:
+          name: rag-config
+      - name: tmp
+        emptyDir:
+          sizeLimit: 10Gi

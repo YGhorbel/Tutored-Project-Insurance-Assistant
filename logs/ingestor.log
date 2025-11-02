@@ -1,0 +1,48 @@
+2025-11-01 23:41:12 | ERROR    | workers.enricher:enrich_chunk:121 | Error enriching chunk: LLM error
+2025-11-01 23:41:12 | INFO     | workers.enricher:process_message:141 | Processed and published chunk 123
+2025-11-01 23:41:12 | ERROR    | workers.enricher:enrich_chunk:121 | Error enriching chunk: LLM error
+2025-11-01 23:41:12 | INFO     | workers.enricher:process_message:141 | Processed and published chunk 123
+2025-11-01 23:41:12 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:12 | INFO     | workers.ingestor:chunk_text:92 | Created 4 chunks from document
+2025-11-01 23:41:12 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:12 | INFO     | workers.ingestor:chunk_text:92 | Created 2 chunks from document
+2025-11-01 23:41:12 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:12 | INFO     | workers.ingestor:process_pdf:106 | Processing PDF: /fake/path.pdf
+2025-11-01 23:41:12 | INFO     | workers.ingestor:chunk_text:92 | Created 1 chunks from document
+2025-11-01 23:41:12 | INFO     | workers.ingestor:chunk_text:92 | Created 1 chunks from document
+2025-11-01 23:41:12 | INFO     | workers.ingestor:process_pdf:130 | Processed 2 chunks from 2 pages
+2025-11-01 23:41:12 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:12 | INFO     | workers.ingestor:process_pdf:106 | Processing PDF: /fake/path.pdf
+2025-11-01 23:41:12 | ERROR    | workers.ingestor:process_pdf:134 | Error processing PDF /fake/path.pdf: PDF read error
+2025-11-01 23:41:12 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:12 | INFO     | workers.ingestor:ingest_from_storage:145 | Ingesting from test-bucket/
+2025-11-01 23:41:12 | INFO     | workers.ingestor:ingest_from_storage:151 | Found 2 PDF files
+2025-11-01 23:41:12 | INFO     | workers.ingestor:ingest_from_storage:166 | Published 1 chunks from doc1.pdf
+2025-11-01 23:41:12 | ERROR    | workers.ingestor:ingest_from_storage:172 | Error ingesting doc1.pdf: [WinError 3] Le chemin d’accès spécifié est introuvable: '/tmp/doc1.pdf'
+2025-11-01 23:41:12 | INFO     | workers.ingestor:ingest_from_storage:166 | Published 1 chunks from doc2.pdf
+2025-11-01 23:41:12 | ERROR    | workers.ingestor:ingest_from_storage:172 | Error ingesting doc2.pdf: [WinError 3] Le chemin d’accès spécifié est introuvable: '/tmp/doc2.pdf'
+2025-11-01 23:41:12 | INFO     | workers.ingestor:ingest_from_storage:177 | Ingestion complete
+2025-11-01 23:41:48 | ERROR    | workers.enricher:enrich_chunk:121 | Error enriching chunk: LLM error
+2025-11-01 23:41:48 | INFO     | workers.enricher:process_message:141 | Processed and published chunk 123
+2025-11-01 23:41:48 | ERROR    | workers.enricher:enrich_chunk:121 | Error enriching chunk: LLM error
+2025-11-01 23:41:48 | INFO     | workers.enricher:process_message:141 | Processed and published chunk 123
+2025-11-01 23:41:48 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:48 | INFO     | workers.ingestor:chunk_text:92 | Created 4 chunks from document
+2025-11-01 23:41:48 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:48 | INFO     | workers.ingestor:chunk_text:92 | Created 2 chunks from document
+2025-11-01 23:41:48 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:48 | INFO     | workers.ingestor:process_pdf:106 | Processing PDF: /fake/path.pdf
+2025-11-01 23:41:48 | INFO     | workers.ingestor:chunk_text:92 | Created 1 chunks from document
+2025-11-01 23:41:48 | INFO     | workers.ingestor:chunk_text:92 | Created 1 chunks from document
+2025-11-01 23:41:48 | INFO     | workers.ingestor:process_pdf:130 | Processed 2 chunks from 2 pages
+2025-11-01 23:41:48 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:48 | INFO     | workers.ingestor:process_pdf:106 | Processing PDF: /fake/path.pdf
+2025-11-01 23:41:48 | ERROR    | workers.ingestor:process_pdf:134 | Error processing PDF /fake/path.pdf: PDF read error
+2025-11-01 23:41:48 | INFO     | workers.ingestor:__init__:51 | DocumentIngestor initialized
+2025-11-01 23:41:48 | INFO     | workers.ingestor:ingest_from_storage:145 | Ingesting from test-bucket/
+2025-11-01 23:41:48 | INFO     | workers.ingestor:ingest_from_storage:151 | Found 2 PDF files
+2025-11-01 23:41:48 | INFO     | workers.ingestor:ingest_from_storage:166 | Published 1 chunks from doc1.pdf
+2025-11-01 23:41:48 | ERROR    | workers.ingestor:ingest_from_storage:172 | Error ingesting doc1.pdf: [WinError 3] Le chemin d’accès spécifié est introuvable: '/tmp/doc1.pdf'
+2025-11-01 23:41:48 | INFO     | workers.ingestor:ingest_from_storage:166 | Published 1 chunks from doc2.pdf
+2025-11-01 23:41:48 | ERROR    | workers.ingestor:ingest_from_storage:172 | Error ingesting doc2.pdf: [WinError 3] Le chemin d’accès spécifié est introuvable: '/tmp/doc2.pdf'
+2025-11-01 23:41:48 | INFO     | workers.ingestor:ingest_from_storage:177 | Ingestion complete
